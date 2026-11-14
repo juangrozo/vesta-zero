@@ -57,6 +57,17 @@ without it the rest of the dashboard works and the assistant reports that it is 
   against the source records; anything that does not match is shown as a warning.
 - Answers are stored in the `llm_cache` table, so repeated questions (for example during a demo) make no API call.
 
+### Data export
+
+The **Data** page filters documented test conditions across investigations (for example the lunar habitat
+range, at least 30 % O2 at 10.2 psi or less), previews them and downloads them as CSV or JSON. Each row has
+the PSI ID and DOI to cite, O2, pressure and flow in common units, and the original table cells. The same
+export is available from the API:
+
+```bash
+curl -o lunar.csv "http://localhost:8080/api/test-conditions/export?format=csv&minO2Percent=30&maxPressurePsi=10.2"
+```
+
 ### AI summary on the detail page
 
 Each investigation page shows fuels and samples, sensors and measurements, and variables between tests,

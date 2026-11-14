@@ -2,6 +2,7 @@ package com.ignis.vesta.entrypoint.http;
 
 import com.ignis.vesta.application.AskAssistantUseCase;
 import com.ignis.vesta.application.CompareInvestigationsUseCase;
+import com.ignis.vesta.application.ExportTestConditionsUseCase;
 import com.ignis.vesta.application.GetExtractionUseCase;
 import com.ignis.vesta.application.GetInvestigationUseCase;
 import com.ignis.vesta.domain.extraction.ExtractedFact;
@@ -61,7 +62,15 @@ class InvestigationHandlerTest {
                     new CompareHandler(new CompareInvestigationsUseCase(new FakeDetailReader(),
                             new AskAssistantUseCase(catalog(Flux.empty()), new FakeDetailReader(),
                                     new UnconfiguredLlmGateway()))),
-                    new ExtractionHandler(new GetExtractionUseCase(new FakeDetailReader(), new FakeExtractions()))))
+                    new ExtractionHandler(new GetExtractionUseCase(new FakeDetailReader(), new FakeExtractions())),
+                    new ExportHandler(new ExportTestConditionsUseCase(catalog(Flux.just(
+                            summary("PSI-100", "Microgravity Investigation", HardwareFamily.CYGNUS, FuelState.SOLID,
+                                    SafetyPillar.PREVENTION, 1),
+                            summary("PSI-60", "Ground Investigation", HardwareFamily.GROUND, FuelState.GAS,
+                                    SafetyPillar.FUNDAMENTAL, 0),
+                            summary("PSI-25", "Microgravity Investigation", HardwareFamily.MSG, FuelState.SOLID,
+                                    SafetyPillar.PREVENTION, 1))), new FakeDetailReader()),
+                            new com.fasterxml.jackson.databind.ObjectMapper())))
             .build();
 
     /** Stores one extraction for BASS-II. */
@@ -101,6 +110,61 @@ class InvestigationHandlerTest {
                 return Flux.empty();
             }
         };
+    }
+
+    @Test
+    void exportJsonCoversInvestigationsWithTablesInPsiOrder() {
+        client.get().uri("/api/test-conditions/export").exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.count").isEqualTo(4)
+                .jsonPath("$.note").value(Matchers.containsString("Cite each investigation by its DOI"))
+                .jsonPath("$.rows[0].psiId").isEqualTo("PSI-25")
+                .jsonPath("$.rows[0].doiUrl").isEqualTo("https://doi.org/10.60555/psi-25")
+                .jsonPath("$.rows[0].originalRow['Test #']").isEqualTo("B1")
+                .jsonPath("$.rows[0].provenance").isEqualTo("DOCUMENTED")
+                .jsonPath("$.rows[3].psiId").isEqualTo("PSI-100");
+    }
+
+    @Test
+    void exportFiltersLeaveOutRowsWithoutTheNeededValue() {
+        client.get().uri("/api/test-conditions/export?psiIds=psi-25&minO2Percent=20").exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.count").isEqualTo(1)
+                .jsonPath("$.rows[0].fuelOrMaterial").isEqualTo("PMMA")
+                .jsonPath("$.filters.minO2Percent").isEqualTo(20.0)
+                .jsonPath("$.filters.psiIds[0]").isEqualTo("PSI-25");
+        client.get().uri("/api/test-conditions/export?maxPressurePsi=10.2").exchange()
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.count").isEqualTo(0);
+    }
+
+    @Test
+    void exportCsvIsADownloadWithHeaderAndOriginalRowAsJson() {
+        client.get().uri("/api/test-conditions/export?format=csv&psiIds=PSI-25").exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentTypeCompatibleWith("text/csv")
+                .expectHeader().valueMatches("Content-Disposition", "attachment;.*\\.csv\"")
+                .expectBody(String.class).value(body -> {
+                    String[] lines = body.split("\r\n");
+                    org.assertj.core.api.Assertions.assertThat(lines).hasSize(3);
+                    org.assertj.core.api.Assertions.assertThat(lines[0]).startsWith("psi_id,acronym,doi,doi_url,");
+                    org.assertj.core.api.Assertions.assertThat(lines[1])
+                            .startsWith("PSI-25,PSI-25,10.60555/psi-25,https://doi.org/10.60555/psi-25,f.csv,1,B1,PMMA,0.222,0.222,,,,,,,")
+                            .contains("\"{\"\"PI\"\":\"\"Bhattacharjee\"\",\"\"Test #\"\":\"\"B1\"\"}\"")
+                            .endsWith(",DOCUMENTED");
+                });
+    }
+
+    @Test
+    void exportRejectsInvalidParameters() {
+        client.get().uri("/api/test-conditions/export?format=xml").exchange().expectStatus().isBadRequest();
+        client.get().uri("/api/test-conditions/export?minO2Percent=abc").exchange().expectStatus().isBadRequest();
+        client.get().uri("/api/test-conditions/export?minO2Percent=150").exchange().expectStatus().isBadRequest();
+        client.get().uri("/api/test-conditions/export?psiIds=XYZ").exchange()
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.error").value(Matchers.containsString("Invalid PSI id"));
     }
 
     @Test

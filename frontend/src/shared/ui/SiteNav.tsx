@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/", label: "Catalog", match: (p: string) => p === "/" || p.startsWith("/investigations") },
   { href: "/ranking", label: "Ranking", match: (p: string) => p.startsWith("/ranking") },
   { href: "/compare", label: "Compare", match: (p: string) => p.startsWith("/compare") },
+  { href: "/data", label: "Data", match: (p: string) => p.startsWith("/data") },
   { href: "/assistant", label: "Assistant", match: (p: string) => p.startsWith("/assistant") },
 ];
 
@@ -30,11 +31,11 @@ function ActiveNav() {
 function NavShell({ pathname }: { pathname: string | null }) {
   return (
     <nav aria-label="Main" className="border-b border-zinc-200 dark:border-zinc-800">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-4 py-3">
-        <Link href="/" className="font-semibold tracking-tight">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+        <Link href="/" className="whitespace-nowrap font-semibold tracking-tight">
           Vesta Zero
         </Link>
-        <ul className="flex items-center gap-4 text-sm">
+        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           {LINKS.map((l) => {
             const active = pathname !== null && l.match(pathname);
             return (

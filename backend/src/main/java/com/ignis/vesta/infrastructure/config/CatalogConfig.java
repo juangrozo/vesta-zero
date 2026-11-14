@@ -1,6 +1,7 @@
 package com.ignis.vesta.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ignis.vesta.application.ExportTestConditionsUseCase;
 import com.ignis.vesta.application.GetInvestigationUseCase;
 import com.ignis.vesta.application.ListInvestigationsUseCase;
 import com.ignis.vesta.domain.port.InvestigationCatalogReader;
@@ -11,7 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.r2dbc.core.DatabaseClient;
 
-/** Wires the read side: catalog (F1) and investigation detail (F2). */
+/** Wires the read side: catalog (F1), investigation detail (F2) and the test-condition export. */
 @Configuration
 public class CatalogConfig {
 
@@ -28,6 +29,12 @@ public class CatalogConfig {
     @Bean
     ListInvestigationsUseCase listInvestigationsUseCase(InvestigationCatalogReader reader) {
         return new ListInvestigationsUseCase(reader);
+    }
+
+    @Bean
+    ExportTestConditionsUseCase exportTestConditionsUseCase(InvestigationCatalogReader catalog,
+                                                            InvestigationDetailReader details) {
+        return new ExportTestConditionsUseCase(catalog, details);
     }
 
     @Bean

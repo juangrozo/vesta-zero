@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import { formatFlow, formatO2, formatPressure } from "@/shared/lib/format";
 import { ProvenanceBadge } from "@/shared/ui/ProvenanceBadge";
+import { DownloadLinks } from "@/features/data/components/DownloadLinks";
 import { useTestConditions } from "../hooks/useInvestigation";
 import type { TestConditionRow } from "../types";
 
@@ -36,6 +37,7 @@ export function TestConditionsTable({ psiId }: { psiId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <DownloadLinks filters={{ psiIds: [psiId], minO2Percent: null, maxPressurePsi: null }} label="Download all rows" />
       <div className="relative overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800">
         <table className="w-full border-collapse text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">

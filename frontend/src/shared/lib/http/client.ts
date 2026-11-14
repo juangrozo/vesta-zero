@@ -1,6 +1,11 @@
 /** Single HTTP client to the Vesta Zero backend. The Anthropic key never reaches the browser. */
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
+/** Absolute backend URL for links the browser opens directly, such as file downloads. */
+export function apiUrl(path: string) {
+  return `${API_BASE_URL}${path}`;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
