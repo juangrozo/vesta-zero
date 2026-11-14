@@ -13,7 +13,9 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 public class ApiRouter {
 
     @Bean
-    public RouterFunction<ServerResponse> apiRoutes(HealthHandler healthHandler) {
-        return route(GET("/api/meta/health"), healthHandler::health);
+    public RouterFunction<ServerResponse> apiRoutes(HealthHandler healthHandler,
+                                                    InvestigationHandler investigationHandler) {
+        return route(GET("/api/meta/health"), healthHandler::health)
+                .andRoute(GET("/api/investigations"), investigationHandler::list);
     }
 }

@@ -17,13 +17,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   if (!response.ok) {
-    throw new ApiError(response.status, `${init?.method ?? "GET"} ${path} failed: ${response.status}`);
+    let detail = "";
+    try {
+      const body = (await response.json()) as { error?: string };
+      detail = body.error ? `: ${body.error}` : "";
+    } catch {
+      // body is not JSON; keep the status only
+    }
+    throw new ApiError(response.status, `Request failed (${response.status})${detail}`);
   }
   return (await response.json()) as T;
 }
 
 export const http = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: "POST", body: JSON.stringify(body) }),
+  get: <T>(path: string, signal?: AbortSignal) => request<T>(path, { signal }),
+  post: <T>(path: string, body: unknown, signal?: AbortSignal) =>
+    request<T>(path, { method: "POST", body: JSON.stringify(body), signal }),
 };

@@ -19,6 +19,11 @@ public record PsiId(String value) {
         return new PsiId(value);
     }
 
+    /** Numeric part, for natural ordering (PSI-10 before PSI-100). */
+    public int number() {
+        return Integer.parseInt(value.substring("PSI-".length()));
+    }
+
     @Override
     public String toString() {
         return value;
