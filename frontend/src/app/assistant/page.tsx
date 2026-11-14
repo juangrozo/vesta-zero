@@ -1,4 +1,5 @@
 import { AssistantView } from "@/features/assistant/components/AssistantView";
+import { ScopeNotice } from "@/shared/ui/ScopeNotice";
 
 export const metadata = {
   title: "Assistant · Vesta Zero",
@@ -14,6 +15,7 @@ export default function AssistantPage() {
           when something is not documented. Numbers are checked against the records.
         </p>
       </header>
+      <ScopeNotice />
       <AssistantView />
     </main>
   );
