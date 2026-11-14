@@ -1,6 +1,10 @@
 spring:
   application:
     name: vesta-zero
+  config:
+    # Local development: read ANTHROPIC_API_KEY and DB settings from the repo's .env (gitignored).
+    # In Docker the variables come from the environment and this file is absent.
+    import: optional:file:../.env[.properties]
   r2dbc:
     url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:vesta}
     username: ${DB_USER:vesta}

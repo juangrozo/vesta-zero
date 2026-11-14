@@ -7,6 +7,7 @@ import { Suspense } from "react";
 const LINKS = [
   { href: "/", label: "Catalog", match: (p: string) => p === "/" || p.startsWith("/investigations") },
   { href: "/ranking", label: "Ranking", match: (p: string) => p.startsWith("/ranking") },
+  { href: "/assistant", label: "Assistant", match: (p: string) => p.startsWith("/assistant") },
 ];
 
 /**

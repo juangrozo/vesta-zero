@@ -1,5 +1,6 @@
 package com.ignis.vesta.entrypoint.http;
 
+import com.ignis.vesta.application.AskAssistantUseCase;
 import com.ignis.vesta.application.GetInvestigationUseCase;
 import com.ignis.vesta.application.ListInvestigationsUseCase;
 import com.ignis.vesta.application.RankInvestigationsUseCase;
@@ -19,6 +20,7 @@ import com.ignis.vesta.domain.ranking.RankingEngine;
 import com.ignis.vesta.domain.vo.Doi;
 import com.ignis.vesta.domain.vo.NumericRange;
 import com.ignis.vesta.domain.vo.PsiId;
+import com.ignis.vesta.infrastructure.llm.UnconfiguredLlmGateway;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -45,7 +47,9 @@ class InvestigationHandlerTest {
                                     SafetyPillar.PREVENTION, 1)))),
                     new GetInvestigationUseCase(new FakeDetailReader())),
                     new RankingHandler(new RankInvestigationsUseCase(catalog(Flux.empty()),
-                            new RankingEngine(DefaultRankingCriteria.all())))))
+                            new RankingEngine(DefaultRankingCriteria.all()))),
+                    new AssistantHandler(new AskAssistantUseCase(catalog(Flux.empty()), new FakeDetailReader(),
+                            new UnconfiguredLlmGateway()))))
             .build();
 
     private static InvestigationCatalogReader catalog(Flux<InvestigationSummary> summaries) {

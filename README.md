@@ -47,6 +47,16 @@ cd backend && ./gradlew bootRun --args='--spring.profiles.active=ingest'
 Ingestion is idempotent. Values that cannot be normalized (text such as `RAMP`, out-of-range numbers) are
 never guessed: they are stored in `ingestion_warning` and the original row is kept in `test_condition.raw_row`.
 
+### AI assistant
+
+The assistant (`/assistant`) calls Claude (`claude-opus-5-5`) from the backend only. Set `ANTHROPIC_API_KEY` in `.env`;
+without it the rest of the dashboard works and the assistant reports that it is not configured.
+
+- The 24 investigation records fit in one prompt, so Claude sees all of them; the record block is prompt-cached for 1 hour.
+- Answers are structured JSON. Citations are checked against the catalog, and every number in an answer is checked
+  against the source records; anything that does not match is shown as a warning.
+- Answers are stored in the `llm_cache` table, so repeated questions (for example during a demo) make no API call.
+
 Tests (includes architecture rules enforced with ArchUnit):
 
 ```bash
