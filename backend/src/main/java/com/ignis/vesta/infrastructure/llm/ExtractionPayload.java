@@ -17,7 +17,15 @@ record ExtractionPayload(
 
         @JsonProperty("test_variables")
         @JsonPropertyDescription("Parameters that change between tests, with their stated values or range.")
-        List<Item> testVariables) {
+        List<Item> testVariables,
+
+        @JsonProperty("test_constants")
+        @JsonPropertyDescription("Conditions the record says stay the same across tests, with their stated value.")
+        List<Item> testConstants,
+
+        @JsonProperty("earth_applications")
+        @JsonPropertyDescription("Uses of the research on Earth that the record states.")
+        List<Item> earthApplications) {
 
     record Item(
             @JsonProperty("label")

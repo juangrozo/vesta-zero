@@ -80,6 +80,8 @@ public final class AnthropicFactExtractor implements FactExtractor {
         add(facts, ExtractionField.FUELS_AND_SAMPLES, payload.fuelsAndSamples());
         add(facts, ExtractionField.MEASUREMENTS, payload.measurements());
         add(facts, ExtractionField.TEST_VARIABLES, payload.testVariables());
+        add(facts, ExtractionField.TEST_CONSTANTS, payload.testConstants());
+        add(facts, ExtractionField.EARTH_APPLICATIONS, payload.earthApplications());
         return facts;
     }
 

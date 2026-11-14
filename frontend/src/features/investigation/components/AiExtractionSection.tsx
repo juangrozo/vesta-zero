@@ -8,7 +8,9 @@ import type { ExtractedFact } from "../types";
 const GROUPS = [
   { key: "fuelsAndSamples", title: "Fuels and samples" },
   { key: "measurements", title: "Sensors and measurements" },
-  { key: "testVariables", title: "Variables between tests" },
+  { key: "testVariables", title: "What changed between tests" },
+  { key: "testConstants", title: "What stayed the same" },
+  { key: "earthApplications", title: "Applications on Earth" },
 ] as const;
 
 /** AI-extracted summary (spec F2). Each item shows the verbatim PSI passage it was taken from. */

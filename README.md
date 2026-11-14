@@ -70,8 +70,8 @@ curl -o lunar.csv "http://localhost:8080/api/test-conditions/export?format=csv&m
 
 ### AI summary on the detail page
 
-Each investigation page shows fuels and samples, sensors and measurements, and variables between tests,
-extracted by Claude from the PSI text. The extraction runs offline once, after ingestion (one call per
+Each investigation page shows fuels and samples, sensors and measurements, what changed and what stayed the
+same between tests, and applications on Earth, extracted by Claude from the PSI text. The extraction runs offline once, after ingestion (one call per
 investigation):
 
 ```bash

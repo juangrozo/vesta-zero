@@ -77,4 +77,6 @@ export interface InvestigationExtraction {
   fuelsAndSamples: ExtractedFact[];
   measurements: ExtractedFact[];
   testVariables: ExtractedFact[];
+  testConstants: ExtractedFact[];
+  earthApplications: ExtractedFact[];
 }

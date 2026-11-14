@@ -7,5 +7,9 @@ public enum ExtractionField {
     /** Sensors, instruments and diagnostics, and the quantities they measure. */
     MEASUREMENTS,
     /** Parameters that change between the tests of the investigation. */
-    TEST_VARIABLES
+    TEST_VARIABLES,
+    /** Conditions the record says stay the same across the tests of the investigation. */
+    TEST_CONSTANTS,
+    /** Uses of the research on Earth that the record states. */
+    EARTH_APPLICATIONS
 }
