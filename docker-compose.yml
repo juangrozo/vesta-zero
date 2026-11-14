@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-vesta}
+      POSTGRES_USER: ${DB_USER:-vesta}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vesta}
+    ports:
+      # Host port 5433 avoids clashing with a local PostgreSQL on 5432.
+      - "${DB_HOST_PORT:-5433}:5432"
+    volumes:
+      - vesta-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-vesta} -d ${DB_NAME:-vesta}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-vesta}
+      DB_USER: ${DB_USER:-vesta}
+      DB_PASSWORD: ${DB_PASSWORD:-vesta}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5-5}
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  vesta-db:
