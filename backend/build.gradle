@@ -23,13 +23,14 @@ dependencies {
     implementation libs.spring.boot.starter.validation
     implementation libs.spring.boot.starter.actuator
     implementation libs.anthropic.java
+    implementation libs.commons.csv
 
     // Flyway runs migrations over JDBC at startup; runtime access is R2DBC only.
     implementation libs.spring.boot.starter.jdbc
     implementation libs.flyway.core
     implementation libs.flyway.database.postgresql
 
-    runtimeOnly libs.r2dbc.postgresql
+    implementation libs.r2dbc.postgresql   // compile scope: io.r2dbc.postgresql.codec.Json for jsonb
     runtimeOnly libs.postgresql
 
     annotationProcessor libs.spring.boot.configuration.processor

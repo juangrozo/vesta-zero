@@ -21,15 +21,19 @@ Fallback: if WebFlux/R2DBC slows delivery, switch to Spring MVC + JDBC. Only ada
 
 Single Gradle module, layered by package. Dependencies point inward only:
 `entrypoint -> application -> domain` and `infrastructure -> application/domain`.
-The `domain` package has no Spring or framework imports. An ArchUnit test enforces these rules.
+The `domain` package has no Spring, R2DBC, Jackson or Anthropic imports. Reactor (`Mono`/`Flux`) is allowed
+only in `domain.port` signatures so ports stay non-blocking; the model itself is plain Java.
+An ArchUnit test enforces these rules.
 
 ```
 com.ignis.vesta
 ├── domain/              # plain Java, no framework
-│   ├── model/           # Investigation, TestCondition, AiExtraction, RankingResult
-│   ├── vo/              # PsiId, Doi, OxygenPercent, Pressure, Provenance (DOCUMENTED | AI_EXTRACTED)
+│   ├── catalog/         # FireInvestigationCatalog (24 in-scope IDs + curated hardware/fuel/pillar)
+│   ├── model/           # Investigation, TestCondition, IngestionWarning, AiExtraction, RankingResult
+│   ├── normalization/   # QuantityParser, SourceUnit, Quantity (units, ranges, sanity bounds)
+│   ├── vo/              # PsiId, Doi, NumericRange, Provenance (DOCUMENTED | AI_EXTRACTED)
 │   ├── ranking/         # RankingCriterion, RankingEngine, CriterionScore
-│   └── port/            # InvestigationRepository, PsiGateway, LlmGateway, ExperimentalTableParser
+│   └── port/            # InvestigationRepository, PsiGateway, LlmGateway, ExperimentalTableNormalizer
 ├── application/         # one use case per class
 │   ├── IngestInvestigationsUseCase
 │   ├── ListInvestigationsUseCase
@@ -41,7 +45,7 @@ com.ignis.vesta
 │   ├── psi/             # WebClient client for the PSI API, throttled
 │   ├── persistence/     # R2DBC repositories, jsonb columns
 │   ├── llm/             # Anthropic adapter + DB-backed cache
-│   ├── csv/             # experimental table parsers
+│   ├── csv/             # CSV reader (UTF-8/cp1252), curated per-file mappings, raw-only fallback
 │   └── config/          # @Configuration wiring of ports to adapters
 └── entrypoint/
     ├── http/            # RouterFunction, handlers, DTOs, mappers
@@ -55,9 +59,9 @@ com.ignis.vesta
 | Ports and Adapters | `domain/port` interfaces, `infrastructure` implementations | Swap PSI, DB or LLM without touching use cases |
 | Strategy | One class per `RankingCriterion` (e.g. `LunarAtmosphereProximityCriterion`, `SafetyPillarCriterion`, `MaterialTypeCriterion`, `HabitatRelevanceCriterion`, `StructuredDataCriterion`) | Add criteria without editing the engine; weights adjustable from the UI |
 | Weighted sum with breakdown | `RankingEngine` | Deterministic, explainable rank: every result carries per-criterion score and reason |
-| Registry / Factory | `ExperimentalTableParserRegistry` selects a parser by CSV headers; generic fallback stores only `raw_row` | CSV columns differ per investigation |
+| Registry / Strategy | `CsvExperimentalTableNormalizer` picks a `MappedTableParser` (one curated `TableMapping` per PSI file) or the `RawOnlyTableParser` fallback | CSV columns differ per file; a new file is a new mapping, no code change in the registry |
 | Decorator | `CachingLlmGateway` wraps `AnthropicLlmGateway`; `ThrottledPsiGateway` wraps the PSI client | Caching and rate limiting without changing the core adapters |
-| Value Object | `OxygenPercent`, `Pressure`, `Doi`, `PsiId` | Validate on construction; no invalid numbers in the domain |
+| Value Object | `NumericRange`, `Doi`, `PsiId` | Validate on construction; no invalid numbers in the domain |
 | DTO + Mapper | `entrypoint/http` | Domain objects never leave through HTTP as-is |
 
 ## 4. SOLID

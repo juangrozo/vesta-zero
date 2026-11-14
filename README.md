@@ -38,6 +38,15 @@ cd backend && ./gradlew bootRun
 cd frontend && npm install && npm run dev
 ```
 
+Load data from NASA PSI (24 investigations, ~3 minutes, throttled to one request every 2 s):
+
+```bash
+cd backend && ./gradlew bootRun --args='--spring.profiles.active=ingest'
+```
+
+Ingestion is idempotent. Values that cannot be normalized (text such as `RAMP`, out-of-range numbers) are
+never guessed: they are stored in `ingestion_warning` and the original row is kept in `test_condition.raw_row`.
+
 Tests (includes architecture rules enforced with ArchUnit):
 
 ```bash

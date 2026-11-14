@@ -1,0 +1,4 @@
+# Ingestion profile: no web server, run IngestionRunner once, then exit.
+spring:
+  main:
+    web-application-type: none

@@ -34,7 +34,16 @@ class CleanArchitectureTest {
     static final ArchRule domain_is_framework_free = noClasses()
             .that().resideInAPackage(DOMAIN)
             .should().dependOnClassesThat().resideInAnyPackage(
-                    "org.springframework..", "reactor..", "io.r2dbc..", "com.anthropic..", "jakarta.persistence..")
+                    "org.springframework..", "io.r2dbc..", "com.anthropic..", "jakarta.persistence..",
+                    "com.fasterxml..", "org.apache.commons.csv..")
+            .allowEmptyShould(true);
+
+    /** Reactor types (Mono/Flux) are allowed only in port signatures, so the model stays plain Java. */
+    @ArchTest
+    static final ArchRule reactor_only_in_domain_ports = noClasses()
+            .that().resideInAPackage(DOMAIN)
+            .and().resideOutsideOfPackage("com.ignis.vesta.domain.port..")
+            .should().dependOnClassesThat().resideInAPackage("reactor..")
             .allowEmptyShould(true);
 
     @ArchTest
