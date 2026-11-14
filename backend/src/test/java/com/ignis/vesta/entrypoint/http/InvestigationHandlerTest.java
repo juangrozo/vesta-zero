@@ -1,6 +1,7 @@
 package com.ignis.vesta.entrypoint.http;
 
 import com.ignis.vesta.application.AskAssistantUseCase;
+import com.ignis.vesta.application.CompareInvestigationsUseCase;
 import com.ignis.vesta.application.GetInvestigationUseCase;
 import com.ignis.vesta.application.ListInvestigationsUseCase;
 import com.ignis.vesta.application.RankInvestigationsUseCase;
@@ -49,7 +50,10 @@ class InvestigationHandlerTest {
                     new RankingHandler(new RankInvestigationsUseCase(catalog(Flux.empty()),
                             new RankingEngine(DefaultRankingCriteria.all()))),
                     new AssistantHandler(new AskAssistantUseCase(catalog(Flux.empty()), new FakeDetailReader(),
-                            new UnconfiguredLlmGateway()))))
+                            new UnconfiguredLlmGateway())),
+                    new CompareHandler(new CompareInvestigationsUseCase(new FakeDetailReader(),
+                            new AskAssistantUseCase(catalog(Flux.empty()), new FakeDetailReader(),
+                                    new UnconfiguredLlmGateway())))))
             .build();
 
     private static InvestigationCatalogReader catalog(Flux<InvestigationSummary> summaries) {
@@ -127,6 +131,27 @@ class InvestigationHandlerTest {
                 .jsonPath("$[0].testLabel").isEqualTo("B1")
                 .jsonPath("$[0].o2Fraction.max").isEqualTo(0.222)
                 .jsonPath("$[0].raw['Test #']").isEqualTo("B1");
+    }
+
+    @Test
+    void compareValidatesSelectionAndReportsMissingInvestigations() {
+        client.post().uri("/api/compare").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue("{\"psiIds\":[\"PSI-25\"]}")
+                .exchange().expectStatus().isBadRequest();
+        client.post().uri("/api/compare").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue("{\"psiIds\":[\"PSI-25\",\"psi-25\"]}")
+                .exchange().expectStatus().isBadRequest();
+        client.post().uri("/api/compare").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue("{\"psiIds\":[\"PSI-25\",\"PSI-9999\"]}")
+                .exchange().expectStatus().isNotFound()
+                .expectBody().jsonPath("$.error").value(Matchers.containsString("PSI-9999"));
+    }
+
+    @Test
+    void compareNarrativeValidatesSelectionBeforeCallingTheModel() {
+        client.post().uri("/api/compare/narrative").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue("{\"psiIds\":[\"PSI-25\",\"PSI-9999\"]}")
+                .exchange().expectStatus().isNotFound();
     }
 
     @Test

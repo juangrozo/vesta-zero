@@ -51,6 +51,14 @@ function Detail({ d }: { d: InvestigationDetail }) {
       </header>
 
       <CitationBox citation={d.citation} doiUrl={d.doiUrl} />
+      <p className="-mt-4 text-sm">
+        <Link
+          href={`/compare?ids=${d.psiId}`}
+          className="text-sky-700 underline underline-offset-2 hover:text-sky-900 dark:text-sky-400 dark:hover:text-sky-300"
+        >
+          Compare {d.acronym ?? d.psiId} with other investigations →
+        </Link>
+      </p>
 
       <Section title="Tested conditions" badge="DOCUMENTED">
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">

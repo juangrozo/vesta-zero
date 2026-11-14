@@ -4,6 +4,7 @@ import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ignis.vesta.application.AskAssistantUseCase;
+import com.ignis.vesta.application.CompareInvestigationsUseCase;
 import com.ignis.vesta.domain.port.InvestigationCatalogReader;
 import com.ignis.vesta.domain.port.InvestigationDetailReader;
 import com.ignis.vesta.domain.port.LlmGateway;
@@ -40,5 +41,11 @@ public class LlmConfig {
     AskAssistantUseCase askAssistantUseCase(InvestigationCatalogReader catalog, InvestigationDetailReader details,
                                             LlmGateway llm) {
         return new AskAssistantUseCase(catalog, details, llm);
+    }
+
+    @Bean
+    CompareInvestigationsUseCase compareInvestigationsUseCase(InvestigationDetailReader details,
+                                                              AskAssistantUseCase assistant) {
+        return new CompareInvestigationsUseCase(details, assistant);
     }
 }
