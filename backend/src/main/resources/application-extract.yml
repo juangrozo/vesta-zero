@@ -1,0 +1,4 @@
+# Extraction profile: no web server, run ExtractionRunner once, then exit.
+spring:
+  main:
+    web-application-type: none

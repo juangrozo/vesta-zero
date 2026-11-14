@@ -60,3 +60,21 @@ export interface TestConditionRow {
   flowCmPerS: Range | null;
   raw: Record<string, string>;
 }
+
+export interface ExtractedFact {
+  label: string;
+  detail: string | null;
+  sourceSpan: string;
+}
+
+export interface InvestigationExtraction {
+  psiId: string;
+  extracted: boolean;
+  provenance: "AI_EXTRACTED";
+  model: string | null;
+  promptVersion: string | null;
+  extractedAt: string | null;
+  fuelsAndSamples: ExtractedFact[];
+  measurements: ExtractedFact[];
+  testVariables: ExtractedFact[];
+}

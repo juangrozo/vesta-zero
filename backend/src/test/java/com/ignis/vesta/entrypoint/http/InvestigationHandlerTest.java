@@ -2,7 +2,13 @@ package com.ignis.vesta.entrypoint.http;
 
 import com.ignis.vesta.application.AskAssistantUseCase;
 import com.ignis.vesta.application.CompareInvestigationsUseCase;
+import com.ignis.vesta.application.GetExtractionUseCase;
 import com.ignis.vesta.application.GetInvestigationUseCase;
+import com.ignis.vesta.domain.extraction.ExtractedFact;
+import com.ignis.vesta.domain.extraction.ExtractionField;
+import com.ignis.vesta.domain.extraction.InvestigationExtraction;
+import com.ignis.vesta.domain.port.ExtractionRepository;
+import com.ignis.vesta.entrypoint.http.dto.ExtractionDto;
 import com.ignis.vesta.application.ListInvestigationsUseCase;
 import com.ignis.vesta.application.RankInvestigationsUseCase;
 import com.ignis.vesta.domain.catalog.CatalogEntry;
@@ -28,7 +34,9 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.Optional;
 import java.util.List;
 import java.util.Map;
 
@@ -53,8 +61,34 @@ class InvestigationHandlerTest {
                             new UnconfiguredLlmGateway())),
                     new CompareHandler(new CompareInvestigationsUseCase(new FakeDetailReader(),
                             new AskAssistantUseCase(catalog(Flux.empty()), new FakeDetailReader(),
-                                    new UnconfiguredLlmGateway())))))
+                                    new UnconfiguredLlmGateway()))),
+                    new ExtractionHandler(new GetExtractionUseCase(new FakeDetailReader(), new FakeExtractions()))))
             .build();
+
+    /** Stores one extraction for BASS-II. */
+    private static final class FakeExtractions implements ExtractionRepository {
+        @Override
+        public Mono<Void> replace(InvestigationExtraction extraction) {
+            return Mono.error(new UnsupportedOperationException());
+        }
+
+        @Override
+        public Mono<Boolean> exists(PsiId psiId, String model, String promptVersion) {
+            return Mono.just(BASS_II.equals(psiId));
+        }
+
+        @Override
+        public Mono<InvestigationExtraction> find(PsiId psiId) {
+            return BASS_II.equals(psiId)
+                    ? Mono.just(new InvestigationExtraction(psiId, "claude-opus-5-5", "extract-v1",
+                    Instant.parse("2026-11-14T20:00:00Z"), List.of(
+                    new ExtractedFact(ExtractionField.FUELS_AND_SAMPLES, "PMMA", "rods, 1 cm diameter",
+                            "PMMA rods of 1 cm diameter"),
+                    new ExtractedFact(ExtractionField.TEST_VARIABLES, "Flow velocity", "",
+                            "varying the air flow velocity"))))
+                    : Mono.empty();
+        }
+    }
 
     private static InvestigationCatalogReader catalog(Flux<InvestigationSummary> summaries) {
         return new InvestigationCatalogReader() {
@@ -68,6 +102,32 @@ class InvestigationHandlerTest {
                 return Flux.empty();
             }
         };
+    }
+
+    @Test
+    void extractionGroupsFactsByFieldWithSourceSpans() {
+        client.get().uri("/api/investigations/psi-25/extraction").exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.extracted").isEqualTo(true)
+                .jsonPath("$.provenance").isEqualTo("AI_EXTRACTED")
+                .jsonPath("$.model").isEqualTo("claude-opus-5-5")
+                .jsonPath("$.fuelsAndSamples[0].label").isEqualTo("PMMA")
+                .jsonPath("$.fuelsAndSamples[0].sourceSpan").isEqualTo("PMMA rods of 1 cm diameter")
+                .jsonPath("$.testVariables[0].detail").doesNotExist()
+                .jsonPath("$.measurements.length()").isEqualTo(0);
+    }
+
+    @Test
+    void extractionOfUnknownInvestigationIsNotFound() {
+        client.get().uri("/api/investigations/PSI-999/extraction").exchange().expectStatus().isNotFound();
+    }
+
+    @Test
+    void missingExtractionIsReportedAsNotExtracted() {
+        ExtractionDto dto = ExtractionDto.from("PSI-60", Optional.empty());
+        org.assertj.core.api.Assertions.assertThat(dto.extracted()).isFalse();
+        org.assertj.core.api.Assertions.assertThat(dto.fuelsAndSamples()).isEmpty();
     }
 
     @Test

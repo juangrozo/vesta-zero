@@ -18,11 +18,13 @@ public class ApiRouter {
                                                     InvestigationHandler investigationHandler,
                                                     RankingHandler rankingHandler,
                                                     AssistantHandler assistantHandler,
-                                                    CompareHandler compareHandler) {
+                                                    CompareHandler compareHandler,
+                                                    ExtractionHandler extractionHandler) {
         return route(GET("/api/meta/health"), healthHandler::health)
                 .andRoute(GET("/api/investigations"), investigationHandler::list)
                 .andRoute(GET("/api/investigations/{psiId}"), investigationHandler::detail)
                 .andRoute(GET("/api/investigations/{psiId}/test-conditions"), investigationHandler::testConditions)
+                .andRoute(GET("/api/investigations/{psiId}/extraction"), extractionHandler::extraction)
                 .andRoute(GET("/api/ranking/criteria"), rankingHandler::criteria)
                 .andRoute(POST("/api/ranking"), rankingHandler::rank)
                 .andRoute(POST("/api/assistant/ask"), assistantHandler::ask)

@@ -3,8 +3,6 @@ package com.ignis.vesta.infrastructure.llm;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.JsonSchemaLocalValidation;
 import com.anthropic.core.JsonValue;
-import com.anthropic.errors.AnthropicException;
-import com.anthropic.errors.AnthropicServiceException;
 import com.anthropic.models.messages.CacheControlEphemeral;
 import com.anthropic.models.messages.OutputConfig;
 import com.anthropic.models.messages.StopReason;
@@ -15,8 +13,6 @@ import com.anthropic.models.messages.TextBlockParam;
 import com.ignis.vesta.domain.assistant.EvidenceCorpus;
 import com.ignis.vesta.domain.assistant.GeneratedAnswer;
 import com.ignis.vesta.domain.port.LlmGateway;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -29,7 +25,6 @@ import java.util.List;
  */
 public final class AnthropicLlmGateway implements LlmGateway {
 
-    private static final Logger log = LoggerFactory.getLogger(AnthropicLlmGateway.class);
     private static final long MAX_TOKENS = 16_000L;
 
     private final AnthropicClient client;
@@ -66,24 +61,7 @@ public final class AnthropicLlmGateway implements LlmGateway {
                 .putAdditionalHeader("anthropic-beta", "server-side-fallback-2026-07-01")
                 .putAdditionalBodyProperty("fallbacks", JsonValue.from("default"))
                 .build();
-        StructuredMessage<AnswerPayload> response;
-        try {
-            response = client.messages().create(params);
-        } catch (AnthropicServiceException e) {
-            throw new LlmUnavailableException("Claude request failed with HTTP " + e.statusCode());
-        } catch (AnthropicException e) {
-            Throwable root = e;
-            while (root.getCause() != null && root.getCause() != root) {
-                root = root.getCause();
-            }
-            log.warn("Claude request failed: {} (root cause {}: {})", e.getClass().getSimpleName(),
-                    root.getClass().getName(), root.getMessage());
-            throw new LlmUnavailableException("Claude could not be reached (" + e.getClass().getSimpleName() + ")");
-        }
-        log.info("Claude answer: input={} cacheRead={} cacheWrite={} output={} stop={}",
-                response.usage().inputTokens(), response.usage().cacheReadInputTokens().orElse(0L),
-                response.usage().cacheCreationInputTokens().orElse(0L), response.usage().outputTokens(),
-                response.stopReason().map(Object::toString).orElse("none"));
+        StructuredMessage<AnswerPayload> response = ClaudeCalls.create(client, params, "answer");
 
         StopReason stop = response.stopReason().orElse(null);
         if (StopReason.REFUSAL.equals(stop)) {

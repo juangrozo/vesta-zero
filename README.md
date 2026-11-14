@@ -57,6 +57,22 @@ without it the rest of the dashboard works and the assistant reports that it is 
   against the source records; anything that does not match is shown as a warning.
 - Answers are stored in the `llm_cache` table, so repeated questions (for example during a demo) make no API call.
 
+### AI summary on the detail page
+
+Each investigation page shows fuels and samples, sensors and measurements, and variables between tests,
+extracted by Claude from the PSI text. The extraction runs offline once, after ingestion (one call per
+investigation):
+
+```bash
+cd backend && ./gradlew bootRun --args='--spring.profiles.active=extract'
+# options: --only=PSI-69,PSI-25 to limit the run, --force to redo stored extractions
+```
+
+- Every item carries the verbatim PSI passage it comes from. An item is kept only if that passage is found in
+  the record and every number in the item appears in the passage; everything else is discarded and logged.
+- Results are stored in `ai_extraction`; reruns skip investigations already extracted with the same model and
+  prompt version, so the page never calls the model.
+
 Tests (includes architecture rules enforced with ArchUnit):
 
 ```bash

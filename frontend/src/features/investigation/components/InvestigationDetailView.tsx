@@ -7,6 +7,7 @@ import { formatDate, formatFlow, formatO2, formatPressure } from "@/shared/lib/f
 import { ProvenanceBadge } from "@/shared/ui/ProvenanceBadge";
 import { useInvestigation } from "../hooks/useInvestigation";
 import type { InvestigationDetail } from "../types";
+import { AiExtractionSection } from "./AiExtractionSection";
 import { CitationBox } from "./CitationBox";
 import { TestConditionsTable } from "./TestConditionsTable";
 
@@ -86,6 +87,8 @@ function Detail({ d }: { d: InvestigationDetail }) {
           </details>
         )}
       </Section>
+
+      <AiExtractionSection psiId={d.psiId} />
 
       <Section title="Overview" badge="DOCUMENTED">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
