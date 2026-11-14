@@ -2,6 +2,7 @@ package com.ignis.vesta.entrypoint.http;
 
 import com.ignis.vesta.application.GetInvestigationUseCase;
 import com.ignis.vesta.application.ListInvestigationsUseCase;
+import com.ignis.vesta.application.RankInvestigationsUseCase;
 import com.ignis.vesta.domain.catalog.CatalogEntry;
 import com.ignis.vesta.domain.catalog.FuelState;
 import com.ignis.vesta.domain.catalog.HardwareFamily;
@@ -11,7 +12,10 @@ import com.ignis.vesta.domain.model.Investigation;
 import com.ignis.vesta.domain.model.InvestigationSummary;
 import com.ignis.vesta.domain.model.Publication;
 import com.ignis.vesta.domain.model.TestCondition;
+import com.ignis.vesta.domain.port.InvestigationCatalogReader;
 import com.ignis.vesta.domain.port.InvestigationDetailReader;
+import com.ignis.vesta.domain.ranking.DefaultRankingCriteria;
+import com.ignis.vesta.domain.ranking.RankingEngine;
 import com.ignis.vesta.domain.vo.Doi;
 import com.ignis.vesta.domain.vo.NumericRange;
 import com.ignis.vesta.domain.vo.PsiId;
@@ -32,15 +36,31 @@ class InvestigationHandlerTest {
 
     private final WebTestClient client = WebTestClient.bindToRouterFunction(
             new ApiRouter().apiRoutes(new HealthHandler(), new InvestigationHandler(
-                    new ListInvestigationsUseCase(() -> Flux.just(
+                    new ListInvestigationsUseCase(catalog(Flux.just(
                             summary("PSI-100", "Microgravity Investigation", HardwareFamily.CYGNUS, FuelState.SOLID,
                                     SafetyPillar.PREVENTION, 1),
                             summary("PSI-60", "Ground Investigation", HardwareFamily.GROUND, FuelState.GAS,
                                     SafetyPillar.FUNDAMENTAL, 0),
                             summary("PSI-25", "Microgravity Investigation", HardwareFamily.MSG, FuelState.SOLID,
-                                    SafetyPillar.PREVENTION, 1))),
-                    new GetInvestigationUseCase(new FakeDetailReader()))))
+                                    SafetyPillar.PREVENTION, 1)))),
+                    new GetInvestigationUseCase(new FakeDetailReader())),
+                    new RankingHandler(new RankInvestigationsUseCase(catalog(Flux.empty()),
+                            new RankingEngine(DefaultRankingCriteria.all())))))
             .build();
+
+    private static InvestigationCatalogReader catalog(Flux<InvestigationSummary> summaries) {
+        return new InvestigationCatalogReader() {
+            @Override
+            public Flux<InvestigationSummary> findAllSummaries() {
+                return summaries;
+            }
+
+            @Override
+            public Flux<TestCondition> findAllNormalizedConditions() {
+                return Flux.empty();
+            }
+        };
+    }
 
     @Test
     void listsAllInNaturalIdOrderWithDoiUrl() {
