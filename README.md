@@ -23,14 +23,32 @@ See [docs/architecture.md](docs/architecture.md).
 Requirements: Docker with Compose. For development without Docker: JDK 21 and Node 22.
 
 ```bash
-cp .env.example .env        # then set ANTHROPIC_API_KEY
+cp .env.example .env        # then set ANTHROPIC_API_KEY (optional: without it the AI features are disabled)
 docker compose up --build
 ```
 
 - Frontend: http://localhost:3000
 - Backend health: http://localhost:8080/api/meta/health
 
-Development mode:
+The first start loads `db/seed/01-vesta-seed.sql.gz` into the empty database: the 24 investigations, their
+experimental tables, the AI extractions and a few cached assistant answers. The dashboard works right away,
+with no calls to PSI and no API spend. The seed is loaded only when the `vesta-db` volume is empty;
+`docker compose down -v` deletes the volume and starts over from the seed.
+
+Refresh the data from NASA PSI and rerun the AI extraction inside Docker (optional):
+
+```bash
+docker compose run --rm backend --spring.profiles.active=ingest    # ~3 min, one PSI request every 2 s
+docker compose run --rm backend --spring.profiles.active=extract   # one Claude call per new investigation
+```
+
+Regenerate the seed after refreshing:
+
+```bash
+docker compose exec -T db pg_dump -U vesta -d vesta --no-owner --no-privileges | gzip -9 > db/seed/01-vesta-seed.sql.gz
+```
+
+Development mode (database in Docker, backend and frontend on the host):
 
 ```bash
 docker compose up -d db
@@ -38,7 +56,7 @@ cd backend && ./gradlew bootRun
 cd frontend && npm install && npm run dev
 ```
 
-Load data from NASA PSI (24 investigations, ~3 minutes, throttled to one request every 2 s):
+Load data from NASA PSI without Docker (24 investigations, ~3 minutes, throttled to one request every 2 s):
 
 ```bash
 cd backend && ./gradlew bootRun --args='--spring.profiles.active=ingest'
