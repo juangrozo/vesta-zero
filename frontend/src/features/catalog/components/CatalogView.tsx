@@ -19,7 +19,7 @@ export function CatalogView() {
         </h2>
         {state.status === "ready" && (
           <p className="text-sm text-zinc-600 dark:text-zinc-400" aria-live="polite">
-            {state.items.length} shown
+            {state.data.length} shown
           </p>
         )}
       </div>
@@ -34,7 +34,7 @@ export function CatalogView() {
           Could not load investigations. Is the backend running? ({state.message})
         </p>
       )}
-      {state.status === "ready" && <CatalogTable items={state.items} />}
+      {state.status === "ready" && <CatalogTable items={state.data} />}
 
       <p className="text-xs text-zinc-500">
         Hardware, fuel state and safety pillar are curated by Vesta Zero from PSI metadata and the challenge

@@ -55,6 +55,7 @@ final class PsiRecordMapper {
                 blankToNull(text(json, "researchImpacts")),
                 date(text(json, "investigationStartDate")),
                 date(text(json, "investigationEndDate")),
+                blankToNull(text(json, "licenseIdentifier")),
                 publications(json),
                 tables,
                 entry,

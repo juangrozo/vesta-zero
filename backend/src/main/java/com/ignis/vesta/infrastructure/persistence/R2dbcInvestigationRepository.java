@@ -44,7 +44,7 @@ public final class R2dbcInvestigationRepository implements InvestigationReposito
             INSERT INTO test_condition (investigation_id, source_file, row_index, test_label, fuel_or_material,
                 o2_min, o2_max, pressure_atm_min, pressure_atm_max, flow_cm_s_min, flow_cm_s_max, raw_row)
             VALUES (:investigationId, :sourceFile, :rowIndex, :testLabel, :fuel, :o2Min, :o2Max,
-                :pMin, :pMax, :flowMin, :flowMax, :rawRow)
+                :pMin, :pMax, :flowMin, :flowMax, CAST(:rawRow AS json))
             """;
 
     private static final String INSERT_WARNING = """
@@ -113,7 +113,8 @@ public final class R2dbcInvestigationRepository implements InvestigationReposito
                 .bind("pMax", bound(t.pressure(), NumericRange::max), BigDecimal.class)
                 .bind("flowMin", bound(t.flow(), NumericRange::min), BigDecimal.class)
                 .bind("flowMax", bound(t.flow(), NumericRange::max), BigDecimal.class)
-                .bind("rawRow", Json.of(toJson(t.rawRow())), Json.class)
+                // Sent as text and cast to json (not jsonb) so the CSV column order survives.
+                .bind("rawRow", toJson(t.rawRow()), String.class)
                 .spec().then();
     }
 

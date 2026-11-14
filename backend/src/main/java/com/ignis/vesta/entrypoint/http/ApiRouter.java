@@ -16,6 +16,8 @@ public class ApiRouter {
     public RouterFunction<ServerResponse> apiRoutes(HealthHandler healthHandler,
                                                     InvestigationHandler investigationHandler) {
         return route(GET("/api/meta/health"), healthHandler::health)
-                .andRoute(GET("/api/investigations"), investigationHandler::list);
+                .andRoute(GET("/api/investigations"), investigationHandler::list)
+                .andRoute(GET("/api/investigations/{psiId}"), investigationHandler::detail)
+                .andRoute(GET("/api/investigations/{psiId}/test-conditions"), investigationHandler::testConditions);
     }
 }

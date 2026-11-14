@@ -28,6 +28,7 @@ public record Investigation(
         String researchImpacts,
         LocalDate startDate,
         LocalDate endDate,
+        String license,
         List<Publication> publications,
         List<ExperimentalTableRef> experimentalTables,
         CatalogEntry classification,

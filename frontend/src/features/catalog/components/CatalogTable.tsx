@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FUEL_LABELS, HARDWARE_LABELS, PILLAR_LABELS } from "../labels";
 import type { InvestigationSummary } from "../types";
 
@@ -15,7 +16,7 @@ export function CatalogTable({ items }: { items: InvestigationSummary[] }) {
         {items.map((item) => (
           <li key={item.psiId} className="rounded-md border border-zinc-200 p-3 text-sm dark:border-zinc-800">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">{item.acronym ?? item.psiId}</span>
+              <span className="font-medium text-zinc-900 dark:text-zinc-100"><Link href={`/investigations/${item.psiId}`} className="underline-offset-2 hover:underline">{item.acronym ?? item.psiId}</Link></span>
               <span className="font-mono text-xs text-zinc-500">{item.psiId}</span>
             </div>
             <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">{item.title}</p>
@@ -52,7 +53,7 @@ function DoiLink({ item }: { item: InvestigationSummary }) {
 
 function CatalogDesktopTable({ items }: { items: InvestigationSummary[] }) {
   return (
-    <div className="hidden overflow-x-auto rounded-md border border-zinc-200 md:block dark:border-zinc-800">
+    <div className="relative hidden overflow-x-auto rounded-md border border-zinc-200 md:block dark:border-zinc-800">
       <table className="w-full border-collapse text-left text-sm">
         <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
           <tr>
@@ -70,7 +71,7 @@ function CatalogDesktopTable({ items }: { items: InvestigationSummary[] }) {
             <tr key={item.psiId} className="align-top hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
               <td className="px-3 py-3">
                 <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                  {item.acronym ?? item.psiId}
+                  <Link href={`/investigations/${item.psiId}`} className="underline-offset-2 hover:underline">{item.acronym ?? item.psiId}</Link>
                   {item.acronym && (
                     <span className="ml-2 font-mono text-xs font-normal text-zinc-500">{item.psiId}</span>
                   )}
