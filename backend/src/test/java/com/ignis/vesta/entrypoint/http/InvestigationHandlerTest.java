@@ -23,7 +23,6 @@ import com.ignis.vesta.domain.model.TestCondition;
 import com.ignis.vesta.domain.port.InvestigationCatalogReader;
 import com.ignis.vesta.domain.port.InvestigationDetailReader;
 import com.ignis.vesta.domain.ranking.DefaultRankingCriteria;
-import com.ignis.vesta.domain.ranking.RankingEngine;
 import com.ignis.vesta.domain.vo.Doi;
 import com.ignis.vesta.domain.vo.NumericRange;
 import com.ignis.vesta.domain.vo.PsiId;
@@ -56,7 +55,7 @@ class InvestigationHandlerTest {
                                     SafetyPillar.PREVENTION, 1)))),
                     new GetInvestigationUseCase(new FakeDetailReader())),
                     new RankingHandler(new RankInvestigationsUseCase(catalog(Flux.empty()),
-                            new RankingEngine(DefaultRankingCriteria.all()))),
+                            DefaultRankingCriteria::forEnvironment)),
                     new AssistantHandler(new AskAssistantUseCase(catalog(Flux.empty()), new FakeDetailReader(),
                             new UnconfiguredLlmGateway())),
                     new CompareHandler(new CompareInvestigationsUseCase(new FakeDetailReader(),

@@ -1,7 +1,7 @@
 package com.ignis.vesta.entrypoint.http.dto;
 
 import com.ignis.vesta.application.RankInvestigationsUseCase;
-import com.ignis.vesta.domain.ranking.LunarHabitatTarget;
+import com.ignis.vesta.domain.ranking.HabitatEnvironment;
 import com.ignis.vesta.domain.ranking.RankedInvestigation;
 import com.ignis.vesta.domain.ranking.RankingCriterion;
 
@@ -18,8 +18,11 @@ public final class RankingDtos {
     private RankingDtos() {
     }
 
-    /** {@code weights} may be omitted or partial; any non-negative scale, normalized server-side. */
-    public record RankingRequest(Map<String, Double> weights) {
+    /**
+     * {@code environment} defaults to the lunar base; {@code weights} may be omitted or partial, any non-negative
+     * scale, normalized server-side.
+     */
+    public record RankingRequest(String environment, Map<String, Double> weights) {
         public Map<String, Double> weightsOrEmpty() {
             return weights == null ? Map.of() : weights;
         }
@@ -31,9 +34,12 @@ public final class RankingDtos {
         }
     }
 
-    public record TargetDto(double o2Fraction, double pressureAtm, double pressurePsi) {
-        static TargetDto lunar() {
-            return new TargetDto(LunarHabitatTarget.O2_FRACTION, LunarHabitatTarget.PRESSURE_ATM, 10.2);
+    /** A crew environment and its target atmosphere. {@code assumption} marks targets not given by the challenge. */
+    public record EnvironmentDto(String id, String name, double o2Fraction, String o2Bound, double pressurePsi,
+                                 double pressureAtm, String pressureBound, String basis, boolean assumption) {
+        public static EnvironmentDto from(HabitatEnvironment e) {
+            return new EnvironmentDto(e.name(), e.displayName(), e.o2Fraction(), e.o2Bound().name(), e.pressurePsi(),
+                    e.pressureAtm(), e.pressureBound().name(), e.basis(), e.assumption());
         }
     }
 
@@ -54,10 +60,11 @@ public final class RankingDtos {
         }
     }
 
-    public record RankingResponse(Map<String, Double> weights, TargetDto lunarTarget, String partialGravityNotice,
-                                  List<RankedDto> results) {
+    public record RankingResponse(Map<String, Double> weights, EnvironmentDto environment,
+                                  String partialGravityNotice, List<RankedDto> results) {
         public static RankingResponse from(RankInvestigationsUseCase.Result result) {
-            return new RankingResponse(result.weights().asMap(), TargetDto.lunar(), PARTIAL_GRAVITY_NOTICE,
+            return new RankingResponse(result.weights().asMap(), EnvironmentDto.from(result.environment()),
+                    PARTIAL_GRAVITY_NOTICE,
                     result.ranked().stream().map(RankedDto::from).toList());
         }
     }

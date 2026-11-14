@@ -6,7 +6,7 @@ import com.ignis.vesta.domain.catalog.HardwareFamily;
 import com.ignis.vesta.domain.catalog.SafetyPillar;
 import com.ignis.vesta.domain.model.InvestigationSummary;
 import com.ignis.vesta.domain.model.TestCondition;
-import com.ignis.vesta.domain.ranking.criteria.LunarAtmosphereProximityCriterion;
+import com.ignis.vesta.domain.ranking.criteria.AtmosphereProximityCriterion;
 import com.ignis.vesta.domain.vo.Doi;
 import com.ignis.vesta.domain.vo.NumericRange;
 import com.ignis.vesta.domain.vo.PsiId;
@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.within;
 
 class RankingEngineTest {
 
-    private final RankingEngine engine = new RankingEngine(DefaultRankingCriteria.all());
+    private final RankingEngine engine = new RankingEngine(DefaultRankingCriteria.forEnvironment(HabitatEnvironment.LUNAR_BASE_ROVER));
 
     // BASS-II-like: flight, fire safety, solid, prevention, O2 only at Earth level, 1 atm not documented
     private final RankingInput solidsAtEarthO2 = input("PSI-25", "Microgravity Investigation",
@@ -60,10 +60,10 @@ class RankingEngineTest {
     @Test
     void changingWeightsReordersResults() {
         var onlyAtmosphere = RankingWeights.of(engine.criteria(), Map.of(
-                "lunarAtmosphere", 1.0, "habitatRelevance", 0.0, "materialType", 0.0,
+                "atmosphere", 1.0, "habitatRelevance", 0.0, "materialType", 0.0,
                 "safetyPillar", 0.0, "structuredData", 0.0));
         var onlyMaterial = RankingWeights.of(engine.criteria(), Map.of(
-                "lunarAtmosphere", 0.0, "habitatRelevance", 0.0, "materialType", 1.0,
+                "atmosphere", 0.0, "habitatRelevance", 0.0, "materialType", 1.0,
                 "safetyPillar", 0.0, "structuredData", 0.0));
 
         assertThat(engine.rank(List.of(solidsAtEarthO2, gasAtLunarAtmosphere), onlyAtmosphere).getFirst()
@@ -74,7 +74,7 @@ class RankingEngineTest {
 
     @Test
     void lunarProximityUsesBestTestAndExplainsIt() {
-        CriterionScore score = new LunarAtmosphereProximityCriterion().evaluate(gasAtLunarAtmosphere);
+        CriterionScore score = new AtmosphereProximityCriterion(HabitatEnvironment.LUNAR_BASE_ROVER).evaluate(gasAtLunarAtmosphere);
         assertThat(score.score()).isEqualTo(1.0);
         assertThat(score.reason()).contains("85.0 % O2").contains("0.490 atm").contains("row 7");
     }
@@ -85,14 +85,14 @@ class RankingEngineTest {
         RankingInput summaryRow = input("PSI-68", "Microgravity Investigation", "Spacecraft Fire Safety",
                 FuelState.LIQUID_DROPLET, SafetyPillar.FUNDAMENTAL, 8, 8,
                 condition("PSI-68", 1, new NumericRange(0.17, 0.30), new NumericRange(0.5, 3.0)));
-        CriterionScore score = new LunarAtmosphereProximityCriterion().evaluate(summaryRow);
+        CriterionScore score = new AtmosphereProximityCriterion(HabitatEnvironment.LUNAR_BASE_ROVER).evaluate(summaryRow);
         assertThat(score.score()).isEqualTo(1.0);
         assertThat(score.reason()).contains("may not have been tested together");
     }
 
     @Test
     void lunarProximityWithoutConditionsIsZeroAndSaysSo() {
-        CriterionScore score = new LunarAtmosphereProximityCriterion().evaluate(groundModel);
+        CriterionScore score = new AtmosphereProximityCriterion(HabitatEnvironment.LUNAR_BASE_ROVER).evaluate(groundModel);
         assertThat(score.score()).isZero();
         assertThat(score.reason()).contains("No O2 or pressure documented");
     }
@@ -100,13 +100,52 @@ class RankingEngineTest {
     @Test
     void lunarProximityCountsMissingPressureAsZero() {
         // 0.222 O2 -> (0.222 - 0.21) / 0.09 = 0.1333; pressure missing -> 0; mean = 0.0667
-        CriterionScore score = new LunarAtmosphereProximityCriterion().evaluate(solidsAtEarthO2);
+        CriterionScore score = new AtmosphereProximityCriterion(HabitatEnvironment.LUNAR_BASE_ROVER).evaluate(solidsAtEarthO2);
         assertThat(score.score()).isCloseTo(0.0667, within(1e-3));
     }
 
     @Test
+    void spacecraftPresetRewardsEarthLikeTestsOverOxygenRichOnes() {
+        var spacecraft = new AtmosphereProximityCriterion(HabitatEnvironment.SPACECRAFT_STATION);
+        RankingInput airAtOneAtm = input("PSI-102", "Microgravity Investigation", "Spacecraft Fire Safety",
+                FuelState.SOLID, SafetyPillar.DETECTION, 1, 1,
+                condition("PSI-102", 1, NumericRange.of(0.21), NumericRange.of(1.0)));
+        assertThat(spacecraft.evaluate(airAtOneAtm).score()).isCloseTo(1.0, within(1e-3));
+        // 85 % O2 is far above 21 % -> 0; 0.49 atm is 0.51 atm below 1 atm -> 0; mean 0
+        assertThat(spacecraft.evaluate(gasAtLunarAtmosphere).score()).isZero();
+        assertThat(spacecraft.description()).contains("21 % O2 at 14.7 psi");
+    }
+
+    @Test
+    void aroundTargetScoresOneWhenTheTestedRangeContainsIt() {
+        assertThat(AtmosphereProximityCriterion.component(new NumericRange(0.17, 0.30), 0.21, TargetBound.AROUND,
+                0.09)).isEqualTo(1.0);
+        assertThat(AtmosphereProximityCriterion.component(NumericRange.of(0.255), 0.21, TargetBound.AROUND, 0.09))
+                .isCloseTo(0.5, within(1e-9));
+    }
+
+    @Test
+    void spacesuitPresetNeedsNearlyPureOxygen() {
+        var suit = new AtmosphereProximityCriterion(HabitatEnvironment.SPACESUIT);
+        // 85 % O2 vs >= 100 %: 15 points short of a 9-point tolerance -> 0; 0.49 atm vs <= 4.3 psi (0.293 atm):
+        // 0.197 atm over a 0.306 atm tolerance -> 0.356; mean 0.178
+        assertThat(suit.evaluate(gasAtLunarAtmosphere).score()).isCloseTo(0.178, within(1e-3));
+    }
+
+    @Test
+    void marsPresetIsMarkedAsAnAssumption() {
+        assertThat(HabitatEnvironment.MARS_BASE.assumption()).isTrue();
+        assertThat(HabitatEnvironment.MARS_BASE.basis()).contains("no Martian habitat atmosphere");
+        assertThat(HabitatEnvironment.LUNAR_BASE_ROVER.assumption()).isFalse();
+        assertThat(HabitatEnvironment.parse(null)).isEqualTo(HabitatEnvironment.LUNAR_BASE_ROVER);
+        assertThat(HabitatEnvironment.parse("spacesuit")).isEqualTo(HabitatEnvironment.SPACESUIT);
+        assertThatThrownBy(() -> HabitatEnvironment.parse("venus"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Unknown environment");
+    }
+
+    @Test
     void weightsAreNormalizedAndValidated() {
-        var weights = RankingWeights.of(engine.criteria(), Map.of("lunarAtmosphere", 3.0));
+        var weights = RankingWeights.of(engine.criteria(), Map.of("atmosphere", 3.0));
         double total = weights.asMap().values().stream().mapToDouble(Double::doubleValue).sum();
         assertThat(total).isCloseTo(1.0, within(1e-12));
 
@@ -115,7 +154,7 @@ class RankingEngineTest {
         assertThatThrownBy(() -> RankingWeights.of(engine.criteria(), Map.of("materialType", -1.0)))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> RankingWeights.of(engine.criteria(), Map.of(
-                "lunarAtmosphere", 0.0, "habitatRelevance", 0.0, "materialType", 0.0,
+                "atmosphere", 0.0, "habitatRelevance", 0.0, "materialType", 0.0,
                 "safetyPillar", 0.0, "structuredData", 0.0)))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("greater than zero");
     }

@@ -9,7 +9,6 @@ import com.ignis.vesta.domain.model.InvestigationSummary;
 import com.ignis.vesta.domain.model.TestCondition;
 import com.ignis.vesta.domain.port.InvestigationCatalogReader;
 import com.ignis.vesta.domain.ranking.DefaultRankingCriteria;
-import com.ignis.vesta.domain.ranking.RankingEngine;
 import com.ignis.vesta.domain.vo.Doi;
 import com.ignis.vesta.domain.vo.NumericRange;
 import com.ignis.vesta.domain.vo.PsiId;
@@ -40,10 +39,11 @@ class RankingHandlerTest {
             return Flux.just(new TestCondition(PsiId.of("PSI-159"), "t.csv", 3, "21088A1", "ethane",
                     NumericRange.of(0.85), NumericRange.of(0.49), null, Map.of()));
         }
-    }, new RankingEngine(DefaultRankingCriteria.all())));
+    }, DefaultRankingCriteria::forEnvironment));
 
     private final WebTestClient client = WebTestClient.bindToRouterFunction(
-            route(GET("/api/ranking/criteria"), handler::criteria).andRoute(POST("/api/ranking"), handler::rank))
+            route(GET("/api/ranking/criteria"), handler::criteria).andRoute(POST("/api/ranking"), handler::rank)
+                    .andRoute(GET("/api/ranking/environments"), handler::environments))
             .build();
 
     @Test
@@ -52,7 +52,7 @@ class RankingHandlerTest {
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.length()").isEqualTo(5)
-                .jsonPath("$[0].id").isEqualTo("lunarAtmosphere")
+                .jsonPath("$[0].id").isEqualTo("atmosphere")
                 .jsonPath("$[0].defaultWeight").isEqualTo(0.30)
                 .jsonPath("$[2].provenance").isEqualTo("CURATED");
     }
@@ -65,28 +65,73 @@ class RankingHandlerTest {
                 .jsonPath("$.results.length()").isEqualTo(2)
                 .jsonPath("$.results[0].position").isEqualTo(1)
                 .jsonPath("$.results[0].breakdown.length()").isEqualTo(5)
-                .jsonPath("$.lunarTarget.pressurePsi").isEqualTo(10.2)
+                .jsonPath("$.environment.id").isEqualTo("LUNAR_BASE_ROVER")
+                .jsonPath("$.environment.pressurePsi").isEqualTo(10.2)
+                .jsonPath("$.environment.o2Bound").isEqualTo("AT_LEAST")
                 .jsonPath("$.partialGravityNotice").value(Matchers.containsString("LUCI"));
     }
 
     @Test
     void weightsChangeTheWinner() {
         client.post().uri("/api/ranking").contentType(MediaType.APPLICATION_JSON)
-                .bodyValue("{\"weights\":{\"lunarAtmosphere\":1,\"habitatRelevance\":0,\"materialType\":0,"
+                .bodyValue("{\"weights\":{\"atmosphere\":1,\"habitatRelevance\":0,\"materialType\":0,"
                         + "\"safetyPillar\":0,\"structuredData\":0}}")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.results[0].psiId").isEqualTo("PSI-159")
-                .jsonPath("$.weights.lunarAtmosphere").isEqualTo(1.0);
+                .jsonPath("$.weights.atmosphere").isEqualTo(1.0);
 
         client.post().uri("/api/ranking").contentType(MediaType.APPLICATION_JSON)
-                .bodyValue("{\"weights\":{\"lunarAtmosphere\":0,\"habitatRelevance\":0,\"materialType\":1,"
+                .bodyValue("{\"weights\":{\"atmosphere\":0,\"habitatRelevance\":0,\"materialType\":1,"
                         + "\"safetyPillar\":0,\"structuredData\":0}}")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.results[0].psiId").isEqualTo("PSI-25");
+    }
+
+    @Test
+    void environmentsListPresetsAndFlagAssumptions() {
+        client.get().uri("/api/ranking/environments").exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(4)
+                .jsonPath("$[0].id").isEqualTo("SPACECRAFT_STATION")
+                .jsonPath("$[0].assumption").isEqualTo(true)
+                .jsonPath("$[1].id").isEqualTo("LUNAR_BASE_ROVER")
+                .jsonPath("$[1].assumption").isEqualTo(false)
+                .jsonPath("$[2].basis").value(Matchers.containsString("no Martian habitat atmosphere"));
+    }
+
+    @Test
+    void environmentChangesTheAtmosphereScore() {
+        String onlyAtmosphere = "\"weights\":{\"atmosphere\":1,\"habitatRelevance\":0,\"materialType\":0,"
+                + "\"safetyPillar\":0,\"structuredData\":0}";
+        client.post().uri("/api/ranking").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"environment\":\"spacecraft_station\"," + onlyAtmosphere + "}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.environment.id").isEqualTo("SPACECRAFT_STATION")
+                .jsonPath("$.results[0].breakdown[0].score").isEqualTo(0.0);
+        client.post().uri("/api/ranking").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"environment\":\"LUNAR_BASE_ROVER\"," + onlyAtmosphere + "}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.results[0].psiId").isEqualTo("PSI-159")
+                .jsonPath("$.results[0].breakdown[0].score").isEqualTo(1.0);
+    }
+
+    @Test
+    void unknownEnvironmentIsBadRequest() {
+        client.post().uri("/api/ranking").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"environment\":\"venus\"}")
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.error").value(Matchers.containsString("Unknown environment"));
+        client.get().uri("/api/ranking/criteria?environment=venus").exchange().expectStatus().isBadRequest();
     }
 
     @Test

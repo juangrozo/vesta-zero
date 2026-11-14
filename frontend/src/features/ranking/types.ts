@@ -29,9 +29,23 @@ export interface RankedInvestigation {
   breakdown: Contribution[];
 }
 
+export type TargetBound = "AT_LEAST" | "AT_MOST" | "AROUND";
+
+export interface HabitatEnvironment {
+  id: string;
+  name: string;
+  o2Fraction: number;
+  o2Bound: TargetBound;
+  pressurePsi: number;
+  pressureAtm: number;
+  pressureBound: TargetBound;
+  basis: string;
+  assumption: boolean;
+}
+
 export interface RankingResponse {
   weights: Record<string, number>;
-  lunarTarget: { o2Fraction: number; pressureAtm: number; pressurePsi: number };
+  environment: HabitatEnvironment;
   partialGravityNotice: string;
   results: RankedInvestigation[];
 }
