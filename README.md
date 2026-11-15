@@ -7,7 +7,40 @@ microgravity combustion investigations to deliver fire safety insights for crewe
 Built by team **Ignis Zero** for the NASA Space Apps Challenge 2026 — challenge *Flame in Freefall:
 AI-Powered Fire Safety Insights from Microgravity Combustion Data*.
 
-> Status: work in progress (project skeleton).
+## Screenshots
+
+**Explainable ranking by crew environment.** Pick a spacecraft, lunar base, Martian base or spacesuit target;
+every score shows its per-criterion breakdown.
+
+![Ranking](docs/screenshots/ranking.png)
+
+**Investigation detail with an AI summary traced to its source.** Each AI-extracted item opens the verbatim
+PSI passage it comes from.
+
+![AI summary on the detail page](docs/screenshots/detail-ai-summary.png)
+
+**Research assistant with citations.** Answers come from the stored PSI records only, cite every
+investigation and flag the partial-gravity data gap.
+
+![Assistant](docs/screenshots/assistant.png)
+
+**Comparator.** Two or three investigations side by side, computed similarities and differences, and an
+optional AI comparison.
+
+![Compare](docs/screenshots/compare.png)
+
+**Data for modeling.** Filter test conditions (for example the lunar habitat range) and download CSV or JSON.
+
+![Data export](docs/screenshots/data-export.png)
+
+<details>
+<summary>Catalog and mobile view</summary>
+
+![Catalog](docs/screenshots/catalog.png)
+
+<img src="docs/screenshots/mobile-detail.png" alt="Detail page on a phone" width="320">
+
+</details>
 
 ## Stack
 
