@@ -5,6 +5,8 @@
 export function LogoMark({ className = "h-8 w-8" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden="true" focusable="false">
+      <title>SI-generated logo</title>
+      <desc>Vesta Zero logo: a spherical microgravity flame with a tilted zero-gravity orbit. Designed with SI (Claude, Anthropic).</desc>
       <defs>
         <radialGradient id="vz-flame" cx="50%" cy="50%" r="50%">
           <stop offset="0" stopColor="#ffffff" />

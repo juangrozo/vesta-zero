@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>SI-generated logo</title>
+  <desc>Vesta Zero logo: a spherical microgravity flame with a tilted zero-gravity orbit. Designed with SI (Claude, Anthropic).</desc>
   <defs>
     <radialGradient id="f" cx="50%" cy="50%" r="50%">
       <stop offset="0" stop-color="#ffffff"/>
