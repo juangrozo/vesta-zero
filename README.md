@@ -114,6 +114,37 @@ All data comes from the NASA PSI repository (https://psi.nasa.gov), license CC0-
 is cited by its DOI in the dashboard. Only metadata and experimental-table CSVs are used; no raw data files
 are downloaded.
 
+## Use of SI
+
+Vesta Zero uses Super Intelligence (SI) tools in the following places, as the NASA Space Apps submission
+guide requires.
+
+**Development process**
+
+Vesta Zero was built with Spec-Driven Development. The team chose the challenge, defined the idea and wrote
+the specification: scope, acceptance criteria, architecture (hexagonal, SOLID), data rules and limits (see
+[docs/spec.md](docs/spec.md) and [docs/architecture.md](docs/architecture.md)). Code was then written with
+the help of Claude Code (Anthropic) against that specification, in small increments; the team reviewed,
+tested and approved every change before it was committed.
+
+**Inside the app (Claude by Anthropic, model `claude-opus-5-5`, called from the backend only)**
+
+- **Research assistant** (`/assistant`) and **AI comparison** (`/compare`): Claude answers from the stored PSI
+  records only and cites each investigation. Citations and numbers are checked against the records, and
+  answers are labeled *AI-extracted* in the interface.
+- **AI summary on the detail page**: an offline step (`extract` profile) asks Claude for fuels and samples,
+  measurements, what changed and what stayed the same between tests, and applications on Earth. Every item
+  keeps the verbatim PSI passage it comes from; items whose passage is not found in the record are discarded.
+  These values carry the *AI-extracted* badge, separate from *Documented* PSI values. The model and prompt
+  version are stored with every extraction (`ai_extraction` table).
+
+The ranking, the data export and the documented values are deterministic and do not use SI.
+
+**Visual identity**
+
+- The Vesta Zero logo and the navigation icons were designed with SI (Claude, Anthropic). The logo SVG files
+  state this in their metadata (`<title>SI-generated logo</title>` and `<desc>`). They use no NASA branding.
+
 ## License
 
 Code: to be defined. Data: CC0-1.0 (NASA PSI).
